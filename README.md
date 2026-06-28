@@ -26,6 +26,34 @@ Open `http://127.0.0.1:5000/`.
 python -m unittest discover -s tests -v
 ```
 
+For pytest:
+
+```powershell
+python -m pytest -q
+```
+
+## AGY MCP Server
+
+This repository includes a small local MCP server that lets Codex call the Antigravity CLI (`agy.exe`) as an implementation worker. Codex remains responsible for reviewing diffs and verifying test results.
+
+Run the MCP tests:
+
+```powershell
+python -m pytest tests/test_agy_mcp_core.py tests/test_agy_mcp_server.py -q
+```
+
+Example Codex MCP config:
+
+```toml
+[mcp_servers.agy]
+command = "python"
+args = ["C:\\Users\\liy56\\OneDrive - Aalto University\\Aalto University\\Work\\Experiment operation\\Electrical switcher\\agy_mcp\\server.py"]
+startup_timeout_sec = 10
+tool_timeout_sec = 1800
+```
+
+If `agy` is not on PATH, set `AGY_MCP_AGY_PATH` to the full path of `agy.exe`.
+
 ## Channel Format
 
 Accepted channel inputs are intentionally narrow:
