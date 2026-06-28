@@ -1,769 +1,332 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Keithley 3706A-S Switch Controller</title>
-    <style>
-        :root {
-            --bg: #f5f6fa;
-            --card: #ffffff;
-            --border: #dcdde1;
-            --primary: #2c3e50;
-            --accent: #3498db;
-            --accent-hover: #2980b9;
-            --danger: #e74c3c;
-            --danger-hover: #c0392b;
-            --success: #27ae60;
-            --success-light: #e8f8f0;
-            --danger-light: #fdf0ef;
-            --text: #2c3e50;
-            --text-muted: #7f8c8d;
-            --shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100vh;
-        }
-
-        /* Header */
-        .header {
-            background: var(--primary);
-            color: white;
-            padding: 16px 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .header h1 { font-size: 20px; font-weight: 600; }
-        .header .subtitle { font-size: 13px; opacity: 0.7; margin-top: 2px; }
-
-        .status-badge {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(255,255,255,0.1);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 14px;
-        }
-        .status-dot {
-            width: 10px; height: 10px;
-            border-radius: 50%;
-            background: var(--danger);
-        }
-        .status-dot.connected { background: var(--success); }
-
-        /* Main layout */
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 24px;
-            display: grid;
-            grid-template-columns: 300px 1fr;
-            gap: 24px;
-        }
-
-        /* Cards */
-        .card {
-            background: var(--card);
-            border-radius: 10px;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border);
-            overflow: hidden;
-        }
-        .card-header {
-            padding: 16px 20px;
-            border-bottom: 1px solid var(--border);
-            font-weight: 600;
-            font-size: 15px;
-        }
-        .card-body { padding: 20px; }
-
-        /* Connection panel */
-        .connect-section { margin-bottom: 20px; }
-        .connect-section label {
-            display: block;
-            font-size: 13px;
-            color: var(--text-muted);
-            margin-bottom: 6px;
-        }
-        .connect-section input {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            font-size: 14px;
-            margin-bottom: 12px;
-        }
-        .connect-section input:focus {
-            outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(52,152,219,0.1);
-        }
-
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.15s;
-        }
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        .btn-primary {
-            background: var(--accent);
-            color: white;
-            width: 100%;
-        }
-        .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
-        .btn-danger {
-            background: var(--danger);
-            color: white;
-            width: 100%;
-        }
-        .btn-danger:hover:not(:disabled) { background: var(--danger-hover); }
-        .btn-success { background: var(--success); color: white; }
-        .btn-success:hover:not(:disabled) { background: #219a52; }
-
-        .device-info {
-            margin-top: 16px;
-            padding: 12px;
-            background: var(--success-light);
-            border-radius: 6px;
-            font-size: 13px;
-            line-height: 1.5;
-            word-break: break-all;
-        }
-
-        /* Quick commands */
-        .quick-cmds { margin-top: 20px; }
-        .quick-cmds .btn { width: 100%; margin-bottom: 8px; }
-
-        /* Channel control area */
-        .channel-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
-            gap: 8px;
-            margin-top: 12px;
-        }
-        .channel-btn {
-            padding: 12px 4px;
-            border: 2px solid var(--border);
-            border-radius: 6px;
-            background: var(--danger-light);
-            cursor: pointer;
-            text-align: center;
-            transition: all 0.15s;
-            font-size: 13px;
-            font-weight: 500;
-            user-select: none;
-        }
-        .channel-btn.closed {
-            background: var(--success-light);
-            border-color: var(--success);
-            color: var(--success);
-        }
-        .channel-btn.open {
-            background: var(--danger-light);
-            border-color: var(--danger);
-            color: var(--danger);
-        }
-        .channel-btn:hover { transform: scale(1.05); }
-        .channel-btn .ch-label { font-size: 12px; display: block; }
-        .channel-btn .ch-state { font-size: 10px; font-weight: 600; margin-top: 2px; }
-
-        /* Slot tabs */
-        .slot-tabs {
-            display: flex;
-            gap: 4px;
-            margin-bottom: 16px;
-            border-bottom: 2px solid var(--border);
-            padding-bottom: 0;
-        }
-        .slot-tab {
-            padding: 10px 20px;
-            background: none;
-            border: none;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            color: var(--text-muted);
-            border-bottom: 2px solid transparent;
-            margin-bottom: -2px;
-            transition: all 0.15s;
-        }
-        .slot-tab.active {
-            color: var(--accent);
-            border-bottom-color: var(--accent);
-        }
-
-        /* Channel input */
-        .channel-input-section {
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid var(--border);
-        }
-        .channel-input-section label {
-            display: block;
-            font-size: 13px;
-            color: var(--text-muted);
-            margin-bottom: 6px;
-        }
-        .channel-input-section input {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            font-size: 14px;
-            margin-bottom: 12px;
-        }
-        .channel-input-section input:focus {
-            outline: none;
-            border-color: var(--accent);
-        }
-        .btn-group {
-            display: flex;
-            gap: 8px;
-        }
-        .btn-group .btn { flex: 1; }
-
-        /* Command console */
-        .console-section { margin-top: 20px; }
-        .console-section label {
-            display: block;
-            font-size: 13px;
-            color: var(--text-muted);
-            margin-bottom: 6px;
-        }
-        .console-input {
-            display: flex;
-            gap: 8px;
-        }
-        .console-input input {
-            flex: 1;
-            padding: 10px 12px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            font-family: monospace;
-            font-size: 13px;
-        }
-        .console-input input:focus {
-            outline: none;
-            border-color: var(--accent);
-        }
-        .console-output {
-            margin-top: 8px;
-            padding: 12px;
-            background: #1e1e1e;
-            color: #d4d4d4;
-            border-radius: 6px;
-            font-family: monospace;
-            font-size: 12px;
-            max-height: 200px;
-            overflow-y: auto;
-            line-height: 1.6;
-        }
-        .console-output .cmd { color: #569cd6; }
-        .console-output .result { color: #6a9955; }
-        .console-output .error { color: #f44747; }
-
-        /* Toast notification */
-        .toast {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            padding: 12px 20px;
-            border-radius: 8px;
-            color: white;
-            font-size: 14px;
-            z-index: 1000;
-            opacity: 0;
-            transform: translateY(10px);
-            transition: all 0.3s;
-        }
-        .toast.show { opacity: 1; transform: translateY(0); }
-        .toast.success { background: var(--success); }
-        .toast.error { background: var(--danger); }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .container {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Keithley 3706A-S Switcher</title>
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --panel: #ffffff;
+      --ink: #1f2933;
+      --muted: #667085;
+      --line: #d7dde5;
+      --blue: #2563eb;
+      --green: #15803d;
+      --red: #b42318;
+      --amber: #b54708;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+    header {
+      align-items: center;
+      background: #111827;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      padding: 14px 22px;
+    }
+    h1 { font-size: 18px; margin: 0; }
+    main {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: 320px 1fr;
+      margin: 0 auto;
+      max-width: 1180px;
+      padding: 18px;
+    }
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    h2 {
+      font-size: 15px;
+      margin: 0 0 12px;
+    }
+    label {
+      color: var(--muted);
+      display: block;
+      font-size: 12px;
+      margin: 12px 0 5px;
+    }
+    input, select {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      font-size: 14px;
+      padding: 9px 10px;
+      width: 100%;
+    }
+    button {
+      border: 0;
+      border-radius: 6px;
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 9px 12px;
+    }
+    button:disabled { cursor: not-allowed; opacity: 0.5; }
+    .primary { background: var(--blue); }
+    .safe { background: var(--green); }
+    .danger { background: var(--red); }
+    .warn { background: var(--amber); }
+    .row { display: flex; gap: 8px; margin-top: 10px; }
+    .row > * { flex: 1; }
+    .status {
+      align-items: center;
+      display: flex;
+      gap: 8px;
+      font-size: 13px;
+    }
+    .dot {
+      background: var(--red);
+      border-radius: 50%;
+      height: 10px;
+      width: 10px;
+    }
+    .dot.on { background: var(--green); }
+    .identity, .log {
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--muted);
+      font-family: Consolas, monospace;
+      font-size: 12px;
+      margin-top: 12px;
+      min-height: 36px;
+      padding: 10px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .grid {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+    }
+    .channel {
+      background: #fff1f1;
+      border: 1px solid #fecaca;
+      border-radius: 6px;
+      color: var(--red);
+      min-height: 48px;
+    }
+    .channel.closed {
+      background: #ecfdf3;
+      border-color: #86efac;
+      color: var(--green);
+    }
+    .toolbar {
+      align-items: end;
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 120px 1fr auto;
+      margin-bottom: 14px;
+    }
+    @media (max-width: 800px) {
+      main { grid-template-columns: 1fr; }
+      .toolbar { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
 <body>
+  <header>
+    <h1>Keithley 3706A-S Switcher</h1>
+    <div class="status"><span id="dot" class="dot"></span><span id="statusText">Disconnected</span></div>
+  </header>
 
-<div class="header">
+  <main>
     <div>
-        <h1>Keithley 3706A-S Controller</h1>
-        <div class="subtitle">GPIB Switch Matrix Control Panel</div>
-    </div>
-    <div class="status-badge">
-        <span class="status-dot" id="statusDot"></span>
-        <span id="statusText">Disconnected</span>
-    </div>
-</div>
-
-<div class="container">
-    <!-- Left sidebar: Connection & Quick Actions -->
-    <div>
-        <div class="card">
-            <div class="card-header">Connection</div>
-            <div class="card-body">
-                <div class="connect-section">
-                    <label>GPIB Address (leave blank for auto-detect)</label>
-                    <input type="number" id="gpibAddress" placeholder="e.g. 18" min="0" max="30">
-                    <button class="btn btn-primary" id="btnConnect" onclick="connectDevice()">Connect</button>
-                    <button class="btn btn-danger" id="btnDisconnect" onclick="disconnectDevice()" style="margin-top:8px;display:none;">Disconnect</button>
-                </div>
-                <div id="deviceInfo" class="device-info" style="display:none;"></div>
-
-                <div class="quick-cmds" id="quickCmds" style="display:none;">
-                    <button class="btn btn-danger" onclick="openAll()">Open All Channels</button>
-                    <button class="btn btn-success" onclick="refreshStatus()">Refresh Status</button>
-                </div>
-            </div>
+      <section>
+        <h2>Connection</h2>
+        <label for="address">GPIB address</label>
+        <input id="address" type="number" min="0" max="30" placeholder="18">
+        <label for="resource">VISA resource override</label>
+        <input id="resource" placeholder="GPIB0::18::INSTR">
+        <div class="row">
+          <button class="primary" id="connectBtn">Connect</button>
+          <button class="danger" id="disconnectBtn">Disconnect</button>
         </div>
+        <div id="identity" class="identity"></div>
+      </section>
 
-        <!-- Manual channel input -->
-        <div class="card" style="margin-top:16px;" id="manualCard" style="display:none;">
-            <div class="card-header">Manual Channel Control</div>
-            <div class="card-body">
-                <div class="channel-input-section">
-                    <label>Channels (e.g. 1001:1010 or 1001,1003,1005)</label>
-                    <input type="text" id="channelInput" placeholder="1001:1010">
-                    <div class="btn-group">
-                        <button class="btn btn-success" onclick="closeChannels()">Close</button>
-                        <button class="btn btn-danger" onclick="openChannels()">Open</button>
-                    </div>
-                </div>
-                <div class="channel-input-section" style="margin-top:16px;">
-                    <label>Matrix Connect (two channels)</label>
-                    <input type="text" id="matrixCh1" placeholder="Channel 1 (e.g. 1001)">
-                    <input type="text" id="matrixCh2" placeholder="Channel 2 (e.g. 2001)">
-                    <div class="btn-group">
-                        <button class="btn btn-success" onclick="connectMatrix()">Connect</button>
-                        <button class="btn btn-danger" onclick="disconnectMatrix()">Disconnect</button>
-                    </div>
-                </div>
-            </div>
+      <section style="margin-top:16px;">
+        <h2>Manual Channels</h2>
+        <label for="channels">Channels</label>
+        <input id="channels" placeholder="1001 or 1001,1002:1004">
+        <div class="row">
+          <button class="safe" id="closeBtn">Close</button>
+          <button class="danger" id="openBtn">Open</button>
         </div>
+        <button class="warn" id="openAllBtn" style="margin-top:10px;width:100%;">Open All</button>
+      </section>
 
-        <!-- Console -->
-        <div class="card" style="margin-top:16px;" id="consoleCard" style="display:none;">
-            <div class="card-header">TSP Command Console</div>
-            <div class="card-body">
-                <div class="console-section">
-                    <div class="console-input">
-                        <input type="text" id="cmdInput" placeholder="e.g. channel.getclose()" onkeydown="if(event.key==='Enter')sendCommand()">
-                        <button class="btn btn-primary" onclick="sendCommand()">Send</button>
-                    </div>
-                    <div class="console-output" id="consoleOutput"></div>
-                </div>
-            </div>
-        </div>
+      <section style="margin-top:16px;">
+        <h2>TSP Console</h2>
+        <label for="mode">Mode</label>
+        <select id="mode">
+          <option value="query">Query expression with print(...)</option>
+          <option value="write">Write raw command</option>
+        </select>
+        <label for="command">Command</label>
+        <input id="command" placeholder="channel.getclose()">
+        <button class="primary" id="sendBtn" style="margin-top:10px;width:100%;">Send</button>
+        <div id="log" class="log"></div>
+      </section>
     </div>
 
-    <!-- Right: Channel Grid -->
-    <div>
-        <div class="card">
-            <div class="card-header">
-                Channel Overview
-                <span style="float:right;font-size:12px;font-weight:400;color:var(--text-muted);" id="closedInfo"></span>
-            </div>
-            <div class="card-body">
-                <div class="slot-tabs" id="slotTabs"></div>
-                <div class="channel-grid" id="channelGrid">
-                    <p style="color:var(--text-muted);font-size:14px;">Connect to device to view channels</p>
-                </div>
-            </div>
+    <section>
+      <div class="toolbar">
+        <div>
+          <label for="slot">Slot</label>
+          <select id="slot">
+            <option value="1">Slot 1</option>
+            <option value="2">Slot 2</option>
+            <option value="3">Slot 3</option>
+            <option value="4">Slot 4</option>
+            <option value="5">Slot 5</option>
+            <option value="6">Slot 6</option>
+          </select>
         </div>
-    </div>
-</div>
+        <div>
+          <label for="count">Channels shown</label>
+          <input id="count" type="number" min="1" max="80" value="40">
+        </div>
+        <button class="primary" id="refreshBtn">Refresh</button>
+      </div>
+      <div id="closedInfo" class="identity">Connect to view channel state.</div>
+      <div id="grid" class="grid" style="margin-top:14px;"></div>
+    </section>
+  </main>
 
-<div class="toast" id="toast"></div>
+  <script>
+    const state = { connected: false, closed: new Set() };
+    const el = id => document.getElementById(id);
 
-<script>
-const API = '';
+    async function api(path, method = "GET", body) {
+      const options = { method, headers: { "Content-Type": "application/json" } };
+      if (body) options.body = JSON.stringify(body);
+      const response = await fetch(path, options);
+      const payload = await response.json();
+      if (!response.ok || payload.success === false) throw new Error(payload.error || "Request failed");
+      return payload;
+    }
 
-let connected = false;
-let currentSlot = 1;
-let closedSet = new Set();
-let slotConfig = {}; // { slotNumber: { startCh, endCh, cardType } }
+    function setConnected(connected, identity = "") {
+      state.connected = connected;
+      el("dot").classList.toggle("on", connected);
+      el("statusText").textContent = connected ? "Connected" : "Disconnected";
+      el("identity").textContent = identity;
+      renderGrid();
+    }
 
-// --- API helpers ---
-
-async function api(path, method = 'GET', body = null) {
-    const opts = { method, headers: { 'Content-Type': 'application/json' } };
-    if (body) opts.body = JSON.stringify(body);
-    const resp = await fetch(API + path, opts);
-    return resp.json();
-}
-
-// --- Connection ---
-
-async function connectDevice() {
-    const addr = document.getElementById('gpibAddress').value;
-    const body = {};
-    if (addr) body.address = parseInt(addr);
-
-    try {
-        const res = await api('/api/connect', 'POST', body);
-        if (res.success) {
-            connected = true;
-            updateConnectionUI(true, res.identity);
-            toast('Connected successfully', 'success');
-            await refreshStatus();
+    function parseClosed(text) {
+      const closed = new Set();
+      String(text || "").split(",").map(part => part.trim()).filter(Boolean).forEach(part => {
+        if (part.includes(":")) {
+          const [start, end] = part.split(":").map(Number);
+          for (let channel = start; channel <= end; channel++) closed.add(channel);
         } else {
-            toast(res.error || 'Connection failed', 'error');
+          const channel = Number(part);
+          if (!Number.isNaN(channel)) closed.add(channel);
         }
-    } catch (e) {
-        toast('Connection error: ' + e.message, 'error');
-    }
-}
-
-async function disconnectDevice() {
-    await api('/api/disconnect', 'POST');
-    connected = false;
-    closedSet.clear();
-    slotConfig = {};
-    updateConnectionUI(false);
-    toast('Disconnected', 'success');
-}
-
-function updateConnectionUI(isConnected, identity) {
-    const dot = document.getElementById('statusDot');
-    const text = document.getElementById('statusText');
-    const info = document.getElementById('deviceInfo');
-    const btnConn = document.getElementById('btnConnect');
-    const btnDisc = document.getElementById('btnDisconnect');
-    const quickCmds = document.getElementById('quickCmds');
-    const manualCard = document.getElementById('manualCard');
-    const consoleCard = document.getElementById('consoleCard');
-
-    if (isConnected) {
-        dot.classList.add('connected');
-        text.textContent = 'Connected';
-        info.style.display = 'block';
-        info.textContent = identity || '';
-        btnConn.style.display = 'none';
-        btnDisc.style.display = 'block';
-        quickCmds.style.display = 'block';
-        manualCard.style.display = 'block';
-        consoleCard.style.display = 'block';
-    } else {
-        dot.classList.remove('connected');
-        text.textContent = 'Disconnected';
-        info.style.display = 'none';
-        btnConn.style.display = 'block';
-        btnDisc.style.display = 'none';
-        quickCmds.style.display = 'none';
-        manualCard.style.display = 'none';
-        consoleCard.style.display = 'none';
-        document.getElementById('channelGrid').innerHTML =
-            '<p style="color:var(--text-muted);font-size:14px;">Connect to device to view channels</p>';
-        document.getElementById('slotTabs').innerHTML = '';
-        document.getElementById('closedInfo').textContent = '';
-    }
-}
-
-// --- Channel status ---
-
-async function refreshStatus() {
-    if (!connected) return;
-    try {
-        const res = await api('/api/status');
-        if (res.connected) {
-            // Parse closed channels string
-            closedSet.clear();
-            if (res.closed_channels && res.closed_channels !== 'nil') {
-                parseClosedChannels(res.closed_channels);
-            }
-            detectSlots();
-            renderSlotTabs();
-            renderChannelGrid();
-            document.getElementById('closedInfo').textContent =
-                closedSet.size > 0 ? `${closedSet.size} channel(s) closed` : 'All channels open';
-        } else {
-            connected = false;
-            updateConnectionUI(false);
-        }
-    } catch (e) {
-        toast('Status refresh failed: ' + e.message, 'error');
-    }
-}
-
-function parseClosedChannels(str) {
-    // Keithley returns like: "1001, 1003, 1005" or "1001:1004, 2001"
-    // We need to expand ranges
-    const parts = str.split(',').map(s => s.trim()).filter(s => s);
-    for (const part of parts) {
-        if (part.includes(':')) {
-            const [start, end] = part.split(':').map(Number);
-            for (let i = start; i <= end; i++) {
-                closedSet.add(i);
-            }
-        } else {
-            const num = parseInt(part);
-            if (!isNaN(num)) closedSet.add(num);
-        }
-    }
-}
-
-function detectSlots() {
-    slotConfig = {};
-    // Detect slots from closed channel numbers
-    // Channel numbering: slot*1000 + channel, e.g. 1001 = slot 1 ch 1
-    const allChs = [...closedSet];
-    // Also query the instrument for slot info
-    // For now, detect from channel numbers present
-    const slotSet = new Set();
-    for (const ch of allChs) {
-        const slot = Math.floor(ch / 1000);
-        if (slot >= 1 && slot <= 6) slotSet.add(slot);
-    }
-    // Always show at least slot 1
-    if (slotSet.size === 0) slotSet.add(1);
-
-    for (const s of slotSet) {
-        const base = s * 1000;
-        slotConfig[s] = { startCh: base + 1, endCh: base + 40, cardType: 'Unknown' };
-    }
-    // If no data, show slot 1 with default 40 channels
-    if (Object.keys(slotConfig).length === 0) {
-        slotConfig[1] = { startCh: 1001, endCh: 1040, cardType: 'Unknown' };
-    }
-}
-
-async function detectSlotConfig() {
-    // Query each slot for card type
-    for (let slot = 1; slot <= 6; slot++) {
-        try {
-            const res = await api('/api/command', 'POST', { command: `slot.cardtype[${slot}]` });
-            if (res.success && res.result && res.result !== 'nil') {
-                const cardType = res.result.trim();
-                let numCh = 40; // default
-                if (cardType.includes('3730')) numCh = 40;
-                else if (cardType.includes('3731')) numCh = 40;
-                else if (cardType.includes('3732')) numCh = 20;
-                else if (cardType.includes('3733')) numCh = 10;
-                const base = slot * 1000;
-                slotConfig[slot] = { startCh: base + 1, endCh: base + numCh, cardType };
-            }
-        } catch {}
-    }
-    // Remove empty slots
-    if (Object.keys(slotConfig).length === 0) {
-        slotConfig[1] = { startCh: 1001, endCh: 1040, cardType: 'Unknown' };
-    }
-}
-
-function renderSlotTabs() {
-    const tabs = document.getElementById('slotTabs');
-    tabs.innerHTML = '';
-    const slots = Object.keys(slotConfig).map(Number).sort((a, b) => a - b);
-    for (const s of slots) {
-        const tab = document.createElement('button');
-        tab.className = 'slot-tab' + (s === currentSlot ? ' active' : '');
-        tab.textContent = `Slot ${s}`;
-        tab.onclick = () => {
-            currentSlot = s;
-            renderSlotTabs();
-            renderChannelGrid();
-        };
-        tabs.appendChild(tab);
-    }
-}
-
-function renderChannelGrid() {
-    const grid = document.getElementById('channelGrid');
-    grid.innerHTML = '';
-    const cfg = slotConfig[currentSlot];
-    if (!cfg) return;
-
-    for (let ch = cfg.startCh; ch <= cfg.endCh; ch++) {
-        const btn = document.createElement('div');
-        const isClosed = closedSet.has(ch);
-        btn.className = 'channel-btn ' + (isClosed ? 'closed' : 'open');
-        btn.innerHTML = `<span class="ch-label">${ch}</span><span class="ch-state">${isClosed ? 'ON' : 'OFF'}</span>`;
-        btn.onclick = () => toggleChannel(ch, isClosed);
-        grid.appendChild(btn);
-    }
-}
-
-// --- Channel actions ---
-
-async function toggleChannel(ch, isClosed) {
-    if (!connected) return;
-    const action = isClosed ? 'open' : 'close';
-    try {
-        const res = await api(`/api/channels/${action}`, 'POST', { channels: String(ch) });
-        if (res.success) {
-            await refreshStatus();
-        } else {
-            toast(res.error || 'Action failed', 'error');
-        }
-    } catch (e) {
-        toast('Error: ' + e.message, 'error');
-    }
-}
-
-async function closeChannels() {
-    const ch = document.getElementById('channelInput').value.trim();
-    if (!ch) { toast('Enter channel(s)', 'error'); return; }
-    try {
-        const res = await api('/api/channels/close', 'POST', { channels: ch });
-        if (res.success) {
-            toast('Channels closed', 'success');
-            await refreshStatus();
-        } else {
-            toast(res.error || 'Failed', 'error');
-        }
-    } catch (e) {
-        toast('Error: ' + e.message, 'error');
-    }
-}
-
-async function openChannels() {
-    const ch = document.getElementById('channelInput').value.trim();
-    if (!ch) { toast('Enter channel(s)', 'error'); return; }
-    try {
-        const res = await api('/api/channels/open', 'POST', { channels: ch });
-        if (res.success) {
-            toast('Channels opened', 'success');
-            await refreshStatus();
-        } else {
-            toast(res.error || 'Failed', 'error');
-        }
-    } catch (e) {
-        toast('Error: ' + e.message, 'error');
-    }
-}
-
-async function connectMatrix() {
-    const ch1 = document.getElementById('matrixCh1').value.trim();
-    const ch2 = document.getElementById('matrixCh2').value.trim();
-    if (!ch1 || !ch2) { toast('Enter both channels', 'error'); return; }
-    try {
-        const res = await api('/api/channels/connect', 'POST', { channel1: ch1, channel2: ch2 });
-        if (res.success) {
-            toast('Channels connected', 'success');
-            await refreshStatus();
-        } else {
-            toast(res.error || 'Failed', 'error');
-        }
-    } catch (e) {
-        toast('Error: ' + e.message, 'error');
-    }
-}
-
-async function disconnectMatrix() {
-    const ch1 = document.getElementById('matrixCh1').value.trim();
-    const ch2 = document.getElementById('matrixCh2').value.trim();
-    if (!ch1 || !ch2) { toast('Enter both channels', 'error'); return; }
-    try {
-        const res = await api('/api/channels/disconnect', 'POST', { channel1: ch1, channel2: ch2 });
-        if (res.success) {
-            toast('Channels disconnected', 'success');
-            await refreshStatus();
-        } else {
-            toast(res.error || 'Failed', 'error');
-        }
-    } catch (e) {
-        toast('Error: ' + e.message, 'error');
-    }
-}
-
-async function openAll() {
-    if (!connected) return;
-    try {
-        const res = await api('/api/channels/openall', 'POST');
-        if (res.success) {
-            toast('All channels opened', 'success');
-            await refreshStatus();
-        } else {
-            toast(res.error || 'Failed', 'error');
-        }
-    } catch (e) {
-        toast('Error: ' + e.message, 'error');
-    }
-}
-
-// --- Console ---
-
-let consoleLines = [];
-
-async function sendCommand() {
-    const input = document.getElementById('cmdInput');
-    const cmd = input.value.trim();
-    if (!cmd) return;
-    input.value = '';
-
-    consoleLines.push({ type: 'cmd', text: '> ' + cmd });
-
-    try {
-        const res = await api('/api/command', 'POST', { command: cmd });
-        if (res.success) {
-            if (res.result) {
-                consoleLines.push({ type: 'result', text: res.result });
-            } else {
-                consoleLines.push({ type: 'result', text: 'OK' });
-            }
-        } else {
-            consoleLines.push({ type: 'error', text: res.error || 'Error' });
-        }
-    } catch (e) {
-        consoleLines.push({ type: 'error', text: e.message });
+      });
+      state.closed = closed;
     }
 
-    renderConsole();
-}
-
-function renderConsole() {
-    const output = document.getElementById('consoleOutput');
-    output.innerHTML = consoleLines.map(l =>
-        `<div class="${l.type}">${escapeHtml(l.text)}</div>`
-    ).join('');
-    output.scrollTop = output.scrollHeight;
-}
-
-function escapeHtml(str) {
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-// --- Toast ---
-
-function toast(msg, type = 'success') {
-    const el = document.getElementById('toast');
-    el.textContent = msg;
-    el.className = 'toast ' + type + ' show';
-    setTimeout(() => el.classList.remove('show'), 3000);
-}
-
-// --- Auto-detect slot config on connect ---
-
-const origConnect = connectDevice;
-connectDevice = async function() {
-    await origConnect();
-    if (connected) {
-        await detectSlotConfig();
-        renderSlotTabs();
-        renderChannelGrid();
+    function renderGrid() {
+      const grid = el("grid");
+      grid.innerHTML = "";
+      const slot = Number(el("slot").value);
+      const count = Number(el("count").value || 40);
+      const base = slot * 1000;
+      for (let offset = 1; offset <= count; offset++) {
+        const channel = base + offset;
+        const closed = state.closed.has(channel);
+        const button = document.createElement("button");
+        button.className = "channel" + (closed ? " closed" : "");
+        button.textContent = channel + "\n" + (closed ? "CLOSED" : "OPEN");
+        button.disabled = !state.connected;
+        button.onclick = () => toggleChannel(channel, closed);
+        grid.appendChild(button);
+      }
     }
-};
-</script>
 
+    async function refresh() {
+      const payload = await api("/api/status");
+      if (!payload.connected) {
+        setConnected(false);
+        el("closedInfo").textContent = "Not connected.";
+        return;
+      }
+      parseClosed(payload.closed_channels);
+      setConnected(true, payload.identity);
+      el("closedInfo").textContent = state.closed.size ? `Closed: ${payload.closed_channels}` : "All channels open.";
+    }
+
+    async function toggleChannel(channel, closed) {
+      await api(`/api/channels/${closed ? "open" : "close"}`, "POST", { channels: String(channel) });
+      await refresh();
+    }
+
+    async function connect() {
+      const body = {};
+      if (el("resource").value.trim()) body.resource = el("resource").value.trim();
+      if (el("address").value.trim()) body.address = Number(el("address").value);
+      const payload = await api("/api/connect", "POST", body);
+      setConnected(true, payload.identity);
+      await refresh();
+    }
+
+    async function disconnect() {
+      await api("/api/disconnect", "POST");
+      state.closed.clear();
+      setConnected(false);
+      el("closedInfo").textContent = "Disconnected.";
+    }
+
+    async function channelAction(action) {
+      const channels = el("channels").value.trim();
+      await api(`/api/channels/${action}`, "POST", { channels });
+      await refresh();
+    }
+
+    async function openAll() {
+      if (!confirm("Open all channels on the connected 3706A-S?")) return;
+      await api("/api/channels/openall", "POST");
+      await refresh();
+    }
+
+    async function sendCommand() {
+      const command = el("command").value.trim();
+      const mode = el("mode").value;
+      const payload = await api("/api/command", "POST", { command, mode });
+      el("log").textContent += `> ${mode}: ${command}\n${payload.result || "OK"}\n`;
+    }
+
+    function wire(id, handler) {
+      el(id).onclick = async () => {
+        try { await handler(); }
+        catch (error) { el("log").textContent += `ERROR: ${error.message}\n`; }
+      };
+    }
+
+    wire("connectBtn", connect);
+    wire("disconnectBtn", disconnect);
+    wire("refreshBtn", refresh);
+    wire("closeBtn", () => channelAction("close"));
+    wire("openBtn", () => channelAction("open"));
+    wire("openAllBtn", openAll);
+    wire("sendBtn", sendCommand);
+    el("slot").onchange = renderGrid;
+    el("count").oninput = renderGrid;
+    renderGrid();
+  </script>
 </body>
 </html>
