@@ -75,6 +75,8 @@ The Notebook has a `Detect 3723 Slot` button. After connecting the 3706, click i
 - slot 2 -> MUX1 `2001-2030`, MUX2 `2031-2060`
 - slot 3 -> MUX1 `3001-3030`, MUX2 `3031-3060`
 
+Some empty slots may time out instead of returning `nil`. The Notebook records those slot errors and continues checking the remaining slots.
+
 ## Manual Switch Control
 
 The Notebook includes a manual 3706 control panel for individual switch operations:
@@ -86,6 +88,14 @@ The Notebook includes a manual 3706 control panel for individual switch operatio
 - `Emergency Off`: turn the 2400 output off and then open all 3706 channels
 
 Before manually changing relays, make sure the 2400 output is off unless you intentionally use the `Emergency Off` button first.
+
+## Saving Results
+
+The CSV save path can be typed manually or selected with the Notebook Browse widget. If Browse is not visible, install the optional widget dependency:
+
+```powershell
+python -m pip install ipyfilechooser
+```
 
 ## Legacy Flask Prototype
 
