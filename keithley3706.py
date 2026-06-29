@@ -1,4 +1,5 @@
 import re
+import sys
 
 
 class ChannelValidationError(ValueError):
@@ -35,6 +36,44 @@ def tsp_print(expression):
     if command.lower().startswith("print("):
         return command
     return f"print({command})"
+
+
+def list_visa_resources(visa_backend=None):
+    pyvisa = Keithley3706A._load_pyvisa()
+    manager = pyvisa.ResourceManager(visa_backend) if visa_backend else pyvisa.ResourceManager()
+    try:
+        return tuple(manager.list_resources())
+    finally:
+        manager.close()
+
+
+def probe_visa_resources(visa_backend=None, timeout_ms=3000):
+    pyvisa = Keithley3706A._load_pyvisa()
+    manager = pyvisa.ResourceManager(visa_backend) if visa_backend else pyvisa.ResourceManager()
+    results = []
+    try:
+        for resource_name in manager.list_resources():
+            identity = ""
+            error = ""
+            try:
+                device = manager.open_resource(resource_name)
+                device.timeout = timeout_ms
+                identity = device.query("*IDN?").strip()
+                device.close()
+            except Exception as exc:
+                error = str(exc)
+            results.append({"resource": resource_name, "identity": identity, "error": error})
+    finally:
+        manager.close()
+    return results
+
+
+def find_resource_by_idn(keyword, visa_backend=None, timeout_ms=3000):
+    needle = str(keyword).upper()
+    for result in probe_visa_resources(visa_backend=visa_backend, timeout_ms=timeout_ms):
+        if needle in result["identity"].upper():
+            return result["resource"]
+    return None
 
 
 class Keithley3706A:
@@ -152,5 +191,10 @@ class Keithley3706A:
         try:
             import pyvisa
         except ImportError as exc:
-            raise RuntimeError("PyVISA is not installed. Run: pip install -r requirements.txt") from exc
+            raise RuntimeError(
+                "PyVISA could not be imported by this Flask process. "
+                f"Python: {sys.executable}. "
+                f"Original error: {exc}. "
+                "Install with this exact Python: python -m pip install -r requirements.txt"
+            ) from exc
         return pyvisa
