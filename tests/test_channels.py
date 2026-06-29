@@ -38,10 +38,6 @@ class FakeVisaDevice:
             return "KEITHLEY INSTRUMENTS,MODEL 3706A-S,123456,1.0"
         if command == "print(channel.getclose())":
             return "1001"
-        if command == "print(slot.cardtype[1])":
-            return "nil"
-        if command == "print(slot.cardtype[2])":
-            return "3723"
         return "ok"
 
     def write(self, command):
@@ -71,28 +67,6 @@ class FakePyvisa:
         return self.manager
 
 
-class TimeoutSlotFakeVisaDevice(FakeVisaDevice):
-    def query(self, command):
-        self.commands.append(("query", command))
-        if command == "*IDN?":
-            return "KEITHLEY INSTRUMENTS,MODEL 3706A-S,123456,1.0"
-        if command == "print(slot.cardtype[1])":
-            raise TimeoutError("slot 1 timed out")
-        if command == "print(slot.cardtype[2])":
-            return "3723"
-        return super().query(command)
-
-
-class TimeoutSlotFakeResourceManager(FakeResourceManager):
-    def __init__(self):
-        self.device = TimeoutSlotFakeVisaDevice()
-
-
-class TimeoutSlotFakePyvisa(FakePyvisa):
-    def __init__(self):
-        self.manager = TimeoutSlotFakeResourceManager()
-
-
 class KeithleyCommandTests(unittest.TestCase):
     def test_close_channels_sends_normalized_channel_close_command(self):
         fake_pyvisa = FakePyvisa()
@@ -107,39 +81,6 @@ class KeithleyCommandTests(unittest.TestCase):
 
         self.assertIn(("write", 'channel.close("1001,1002")'), fake_pyvisa.manager.device.commands)
         self.assertIn(("query", "print(channel.getclose())"), fake_pyvisa.manager.device.commands)
-
-    def test_finds_card_slots_by_card_type(self):
-        fake_pyvisa = FakePyvisa()
-        original_loader = Keithley3706A._load_pyvisa
-        Keithley3706A._load_pyvisa = staticmethod(lambda: fake_pyvisa)
-        try:
-            driver = Keithley3706A()
-            driver.connect(address=18)
-            slots = driver.find_card_slots("3723", max_slot=2)
-        finally:
-            Keithley3706A._load_pyvisa = original_loader
-
-        self.assertEqual(slots, [{"slot": 2, "card_type": "3723"}])
-        self.assertIn(("query", "print(slot.cardtype[1])"), fake_pyvisa.manager.device.commands)
-        self.assertIn(("query", "print(slot.cardtype[2])"), fake_pyvisa.manager.device.commands)
-
-    def test_continues_card_slot_scan_after_slot_timeout(self):
-        fake_pyvisa = TimeoutSlotFakePyvisa()
-        original_loader = Keithley3706A._load_pyvisa
-        Keithley3706A._load_pyvisa = staticmethod(lambda: fake_pyvisa)
-        try:
-            driver = Keithley3706A()
-            driver.connect(address=18)
-            scanned = driver.scan_card_slots(max_slot=2)
-            slots = driver.find_card_slots("3723", max_slot=2)
-        finally:
-            Keithley3706A._load_pyvisa = original_loader
-
-        self.assertEqual(scanned[0]["slot"], 1)
-        self.assertEqual(scanned[0]["card_type"], "")
-        self.assertIn("timed out", scanned[0]["error"])
-        self.assertEqual(scanned[1], {"slot": 2, "card_type": "3723", "error": ""})
-        self.assertEqual(slots, [{"slot": 2, "card_type": "3723"}])
 
 
 if __name__ == "__main__":

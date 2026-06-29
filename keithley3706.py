@@ -127,32 +127,6 @@ class Keithley3706A:
     def get_closed_channels(self):
         return self.query_expression("channel.getclose()")
 
-    def slot_card_type(self, slot):
-        slot_number = int(slot)
-        if slot_number < 1:
-            raise ValueError("Slot number must be 1 or greater")
-        return self.query_expression(f"slot.cardtype[{slot_number}]")
-
-    def scan_card_slots(self, max_slot=6):
-        slots = []
-        for slot in range(1, int(max_slot) + 1):
-            card_type = ""
-            error = ""
-            try:
-                card_type = self.slot_card_type(slot).strip()
-            except Exception as exc:
-                error = str(exc)
-            slots.append({"slot": slot, "card_type": card_type, "error": error})
-        return slots
-
-    def find_card_slots(self, card_keyword, max_slot=6):
-        needle = str(card_keyword).upper()
-        matches = []
-        for result in self.scan_card_slots(max_slot=max_slot):
-            if needle in result["card_type"].upper():
-                matches.append({"slot": result["slot"], "card_type": result["card_type"]})
-        return matches
-
     def close_channels(self, channels):
         channel_list = format_channel_list(channels)
         self._write(f'channel.close("{channel_list}")')
