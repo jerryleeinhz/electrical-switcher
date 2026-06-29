@@ -38,6 +38,10 @@ class FakeVisaDevice:
             return "KEITHLEY INSTRUMENTS,MODEL 3706A-S,123456,1.0"
         if command == "print(channel.getclose())":
             return "1001"
+        if command == "print(slot.cardtype[1])":
+            return "nil"
+        if command == "print(slot.cardtype[2])":
+            return "3723"
         return "ok"
 
     def write(self, command):
@@ -81,6 +85,21 @@ class KeithleyCommandTests(unittest.TestCase):
 
         self.assertIn(("write", 'channel.close("1001,1002")'), fake_pyvisa.manager.device.commands)
         self.assertIn(("query", "print(channel.getclose())"), fake_pyvisa.manager.device.commands)
+
+    def test_finds_card_slots_by_card_type(self):
+        fake_pyvisa = FakePyvisa()
+        original_loader = Keithley3706A._load_pyvisa
+        Keithley3706A._load_pyvisa = staticmethod(lambda: fake_pyvisa)
+        try:
+            driver = Keithley3706A()
+            driver.connect(address=18)
+            slots = driver.find_card_slots("3723", max_slot=2)
+        finally:
+            Keithley3706A._load_pyvisa = original_loader
+
+        self.assertEqual(slots, [{"slot": 2, "card_type": "3723"}])
+        self.assertIn(("query", "print(slot.cardtype[1])"), fake_pyvisa.manager.device.commands)
+        self.assertIn(("query", "print(slot.cardtype[2])"), fake_pyvisa.manager.device.commands)
 
 
 if __name__ == "__main__":

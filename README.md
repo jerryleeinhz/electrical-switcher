@@ -38,6 +38,7 @@ The Notebook provides:
 - Connect/disconnect controls
 - Manual 3706 channel close/open/open all controls
 - Emergency safe state button: 2400 output off plus 3706 open all
+- 3723 slot detection that updates the default `1001`/`2001` style channel ranges
 - Generated A x B scans
 - Manual channel pair scans
 - 2400 source voltage/current settings
@@ -67,6 +68,12 @@ The 3723-ST is a multiplexer terminal board, not a matrix. A generated A x B sca
 - B ports -> MUX2 channels, such as `1031` to `1060`
 
 If the card is not in slot 1, adjust the channel numbers to match the actual slot prefix.
+
+The Notebook has a `Detect 3723 Slot` button. After connecting the 3706, click it to query `slot.cardtype[1]` through `slot.cardtype[6]`. If it finds a 3723 card, it updates the default ranges automatically:
+
+- slot 1 -> MUX1 `1001-1030`, MUX2 `1031-1060`
+- slot 2 -> MUX1 `2001-2030`, MUX2 `2031-2060`
+- slot 3 -> MUX1 `3001-3030`, MUX2 `3031-3060`
 
 ## Manual Switch Control
 
