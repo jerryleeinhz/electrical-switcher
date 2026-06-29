@@ -125,7 +125,7 @@ class Keithley3706A:
         return self._query("*IDN?").strip()
 
     def get_closed_channels(self):
-        return self.query_expression("channel.getclose()")
+        return self.query_expression('channel.getclose("allslots")')
 
     def close_channels(self, channels):
         channel_list = format_channel_list(channels)
@@ -138,7 +138,7 @@ class Keithley3706A:
         return self.get_closed_channels()
 
     def open_all(self):
-        self._write("channel.openall()")
+        self._write('channel.open("allslots")')
         return self.get_closed_channels()
 
     def query_expression(self, expression):

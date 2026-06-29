@@ -76,7 +76,7 @@ The Notebook includes a manual 3706 control panel for individual switch operatio
 - `Close`: close channels such as `1001`, `1001,1002`, or `1001:1008`
 - `Open`: open the entered channels
 - `Open All`: open every 3706 relay channel
-- `Refresh Closed`: query `channel.getclose()`
+- `Refresh Closed`: query `channel.getclose("allslots")`
 - `Emergency Off`: turn the 2400 output off and then open all 3706 channels
 
 Before manually changing relays, make sure the 2400 output is off unless you intentionally use the `Emergency Off` button first.

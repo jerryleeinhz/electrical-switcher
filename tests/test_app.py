@@ -69,10 +69,10 @@ class ApiTests(unittest.TestCase):
 
     def test_query_command_supports_tsp_expression_without_question_mark(self):
         self.client.post("/api/connect", json={"address": 18})
-        response = self.client.post("/api/command", json={"mode": "query", "command": "channel.getclose()"})
+        response = self.client.post("/api/command", json={"mode": "query", "command": 'channel.getclose("allslots")'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json()["result"], "3730")
-        self.assertEqual(self.fake.commands[-1], ("query", "channel.getclose()"))
+        self.assertEqual(self.fake.commands[-1], ("query", 'channel.getclose("allslots")'))
 
 
 if __name__ == "__main__":

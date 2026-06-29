@@ -36,7 +36,7 @@ class FakeVisaDevice:
         self.commands.append(("query", command))
         if command == "*IDN?":
             return "KEITHLEY INSTRUMENTS,MODEL 3706A-S,123456,1.0"
-        if command == "print(channel.getclose())":
+        if command == 'print(channel.getclose("allslots"))':
             return "1001"
         return "ok"
 
@@ -80,7 +80,21 @@ class KeithleyCommandTests(unittest.TestCase):
             Keithley3706A._load_pyvisa = original_loader
 
         self.assertIn(("write", 'channel.close("1001,1002")'), fake_pyvisa.manager.device.commands)
-        self.assertIn(("query", "print(channel.getclose())"), fake_pyvisa.manager.device.commands)
+        self.assertIn(("query", 'print(channel.getclose("allslots"))'), fake_pyvisa.manager.device.commands)
+
+    def test_open_all_opens_allslots_and_queries_closed_channels(self):
+        fake_pyvisa = FakePyvisa()
+        original_loader = Keithley3706A._load_pyvisa
+        Keithley3706A._load_pyvisa = staticmethod(lambda: fake_pyvisa)
+        try:
+            driver = Keithley3706A()
+            driver.connect(address=18)
+            driver.open_all()
+        finally:
+            Keithley3706A._load_pyvisa = original_loader
+
+        self.assertIn(("write", 'channel.open("allslots")'), fake_pyvisa.manager.device.commands)
+        self.assertIn(("query", 'print(channel.getclose("allslots"))'), fake_pyvisa.manager.device.commands)
 
 
 if __name__ == "__main__":
