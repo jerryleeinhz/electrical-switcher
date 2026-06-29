@@ -38,10 +38,10 @@ The Notebook provides:
 - Connect/disconnect controls
 - Manual 3706 channel close/open/open all controls
 - Emergency safe state button: 2400 output off plus 3706 open all
-- 3723 slot detection that updates the default `1001`/`2001` style channel ranges
 - Generated A x B scans
 - Manual channel pair scans
 - 2400 source voltage/current settings
+- Stop on first scan error option
 - Safe scan orchestration
 - pandas DataFrame output and CSV saving
 
@@ -64,18 +64,10 @@ The 3723-ST is a multiplexer terminal board, not a matrix. A generated A x B sca
 
 - 2400 FORCE HI -> MUX1 OUT H
 - 2400 FORCE LO -> MUX2 OUT H
-- A ports -> MUX1 channels, such as `1001` to `1030`
-- B ports -> MUX2 channels, such as `1031` to `1060`
+- A ports -> MUX1 channels, currently defaulting to slot 4 channels `4001` to `4030`
+- B ports -> MUX2 channels, currently defaulting to slot 4 channels `4031` to `4060`
 
-If the card is not in slot 1, adjust the channel numbers to match the actual slot prefix.
-
-The Notebook has a `Detect 3723 Slot` button. After connecting the 3706, click it to query `slot.cardtype[1]` through `slot.cardtype[6]`. If it finds a 3723 card, it updates the default ranges automatically:
-
-- slot 1 -> MUX1 `1001-1030`, MUX2 `1031-1060`
-- slot 2 -> MUX1 `2001-2030`, MUX2 `2031-2060`
-- slot 3 -> MUX1 `3001-3030`, MUX2 `3031-3060`
-
-Some empty slots may time out instead of returning `nil`. The Notebook records those slot errors and continues checking the remaining slots.
+The current lab wiring uses the slot 4 MUX outputs, so the Notebook defaults to `4001-4060`. If you move the 2400 leads to another slot's MUX OUT terminals, change the channel prefix manually.
 
 ## Manual Switch Control
 
@@ -88,6 +80,12 @@ The Notebook includes a manual 3706 control panel for individual switch operatio
 - `Emergency Off`: turn the 2400 output off and then open all 3706 channels
 
 Before manually changing relays, make sure the 2400 output is off unless you intentionally use the `Emergency Off` button first.
+
+## Stopping A Scan
+
+The Notebook defaults to `Stop on first ERROR`, so relay errors such as Keithley 350/360-style switch errors stop the remaining pairs instead of continuing through the list.
+
+For immediate abort while a cell is running, use Jupyter `Kernel > Interrupt Kernel`. The scan code attempts to turn the 2400 output off and open all 3706 channels during cleanup.
 
 ## Saving Results
 

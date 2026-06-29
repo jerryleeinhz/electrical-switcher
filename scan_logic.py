@@ -55,6 +55,7 @@ def run_continuity_scan(
     resistance_threshold,
     switch_idn="",
     meter_idn="",
+    stop_on_error=False,
 ):
     rows = []
     for channel_a, channel_b in pairs:
@@ -92,6 +93,8 @@ def run_continuity_scan(
         finally:
             _attempt_safe_shutdown(meter, switch, row)
         rows.append(row)
+        if stop_on_error and row["status"] == "ERROR":
+            break
     return rows
 
 

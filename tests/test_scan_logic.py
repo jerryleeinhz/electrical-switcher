@@ -110,6 +110,26 @@ class ScanOrchestrationTests(unittest.TestCase):
         self.assertEqual(rows[0]["status"], "ERROR")
         self.assertIn("measurement failed", rows[0]["error"])
 
+    def test_stops_after_first_error_when_requested(self):
+        switch = FakeSwitch()
+        meter = FakeMeter(fail=True)
+
+        rows = run_continuity_scan(
+            switch=switch,
+            meter=meter,
+            pairs=[("4001", "4031"), ("4002", "4032")],
+            source_mode="voltage",
+            source_level=0.1,
+            compliance=0.01,
+            settle_time_s=0,
+            resistance_threshold=20.0,
+            stop_on_error=True,
+        )
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["pair"], "4001,4031")
+        self.assertEqual(rows[0]["status"], "ERROR")
+
 
 if __name__ == "__main__":
     unittest.main()
