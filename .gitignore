@@ -5,3 +5,5 @@ venv/
 .pytest_cache/
 .agy-mcp-runs/
 .ipynb_checkpoints/
+.agent-tasks/heartbeat-state.json
+.agent-tasks/codex-auto-review.md
